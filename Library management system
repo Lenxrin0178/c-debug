@@ -1,0 +1,1045 @@
+#include <iostream> 
+
+#include<iomanip> 
+
+#include <fstream>    // for file input/output 
+
+#include <string> 
+
+#include <vector> 
+
+#include<cstring> 
+
+#include<regex> 
+
+#include<ctime>
+
+#include<cstdlib>
+
+using namespace std;
+
+int book_size = 606;
+
+int borrower_size = 215;
+
+vector<string>NewBID_gen;
+
+vector<vector<string>> book_data;
+
+vector<vector<string>> borrower_data;
+
+string NewBID_Gen() {
+
+
+    srand(time(nullptr));
+
+    int random = rand() % 10000;
+
+    string id = to_string(random);
+
+    string randomid = "HKCC" + string(4 - id.length(), '0') + id;
+
+    return randomid;
+}
+
+void NewBID() {
+
+    for (int i = 0; i <= borrower_size; i++) {
+        NewBID_gen[i] = NewBID_Gen();
+    }
+}
+
+struct Book {
+
+    string id;
+
+    string name;
+
+    string author;
+
+    string publisher;
+
+    string Availability = "Yes";
+
+};
+
+struct Borrower {
+
+    string id;
+
+    string lastname;
+
+    string firstname;
+
+    string contactNumber;
+
+    int numBooksBorrowed;
+    Book Borrowed_Books[5];
+
+};
+
+vector<Book>BookList;
+vector<Borrower> BorrowerList;
+
+void savebook() {
+    for (int i = 0; i < book_size; i++) {
+
+        BookList[i].id = book_data[i][0];
+        BookList[i].name = book_data[i][1];
+        BookList[i].author = book_data[i][2];
+        BookList[i].publisher = book_data[i][3];
+        BookList[i].Availability = "Yes";
+
+    }
+}
+
+void saveborrower() {
+
+    for (int i = 0; i < borrower_size; i++) {
+
+        BorrowerList[i].id = NewBID_gen[i];
+
+        BorrowerList[i].lastname = borrower_data[i][0];
+
+        BorrowerList[i].firstname = borrower_data[i][1];
+
+        BorrowerList[i].contactNumber = borrower_data[i][2];
+
+        BorrowerList[i].numBooksBorrowed = 0;
+    }
+}
+
+void LMS();
+void Showbooks();
+void FindBooks();
+void AddBooks();
+void DeleteBooks();
+void ManageBooks();
+void ManageBorrowers();
+
+void readCSV(string filename) {
+
+    // open the file with inFile aka file manager 
+
+    fstream inFile;
+
+    inFile.open(filename);
+
+    // read the file line by line and store the line with modify. 
+
+    string line;
+
+    if (filename == "E:\\C++ project\\BookList.csv") {
+
+        while (getline(inFile, line, '\n')) {
+
+            vector<string> row;
+
+            string entry = "";
+
+            // modify the line and store to row 
+
+            for (char i : line) {
+
+                if (i != ',') {
+
+                    entry += i;
+
+                }
+
+                else {
+
+                    row.push_back(entry);
+
+                    entry = "";
+
+                }
+
+            }
+
+            row.push_back(entry);
+
+            book_data.push_back(row);
+
+        }
+
+    }
+
+    else if (filename == "E:\\C++ project\\BorrowerList.csv") {
+
+        while (getline(inFile, line, '\n')) {
+
+            vector<string> row;
+
+            string entry = "";
+
+            // modify the line and store to row 
+
+            for (char i : line) {
+
+                if (i != ',') {
+
+                    entry += i;
+
+                }
+
+                else {
+
+                    row.push_back(entry);
+
+                    entry = "";
+
+                }
+
+            }
+
+            row.push_back(entry);
+
+            borrower_data.push_back(row);
+
+        }
+
+    }
+
+
+
+    // for call out to let you see what inside book data 
+
+
+
+    inFile.close();
+
+}
+
+
+
+void Showbooks() {
+
+    cout << "ID\t\t\tBook Details\t\t\t\t\t\tAvailability\n";
+
+    for (int i = 0; i < book_data.size(); i++)
+
+    {
+
+        cout << BookList[i].id << "\t\t\t" << BookList[i].name << "\t\t\t\t\t\t" << BookList[i].Availability
+
+            << "\n" << "\t\t\t\t\t\t\t\t" << BookList[i].author << "\n" << "\t\t\t\t\t\t\t\t" << BookList[i].publisher;
+
+    }
+
+}
+
+
+
+
+
+
+
+string toLower(string s) //for big/small letter keywords 
+
+{
+
+    string result = "";
+
+    for (char c : s) {
+
+        result += tolower(c);
+
+    }
+
+    return result;
+
+}
+
+
+
+void FindBooks() {
+
+    string keywords;
+
+    cout << "Enter the book keywords:";
+
+    getline(cin, keywords);
+
+    string search = keywords;
+
+    string searchLower = toLower(search);
+
+    vector<string> result;
+
+    bool exactMatch = false;
+
+    if (search.find('"') != string::npos) {
+
+        exactMatch = true;
+
+        regex re("\"([^\"]*)\"|(\\S+)");
+
+        smatch match;
+
+        while (regex_search(search, match, re)) {
+
+            if (match[1].matched) {
+
+                string phrase = match[1].str();
+
+                for (int i = 0; i < book_data.size(); i++) {
+
+                    if (book_data[i][1].find(phrase) != string::npos) {
+
+                        result.push_back(book_data[i][1]);
+
+                    }
+
+                }
+
+            }
+
+            else {
+
+                string keyword = toLower(match[2].str());
+
+                for (int i = 0; i < book_data.size(); i++) {
+
+                    string bookLower = toLower(book_data[i][1]);
+
+                    if (bookLower.find(keyword) != string::npos) {
+
+                        result.push_back(book_data[i][1]);
+
+                    }
+
+                }
+
+            }
+
+            search = match.suffix().str();
+
+        }
+
+    }
+
+    else {
+
+        for (int i = 0; i < book_data.size(); i++) {
+
+            string bookLower = toLower(book_data[i][1]);
+
+            if (bookLower.find(searchLower) != string::npos) {
+
+                result.push_back(book_data[i][1]);
+
+            }
+
+        }
+
+    }
+
+
+
+    if (result.size() == 0) {
+
+        cout << "No matches found." << endl;
+
+    }
+
+    else {
+
+        if (exactMatch) //for " "search 
+
+        {
+
+            for (string j : result) {
+
+                cout << j << endl;
+
+            }
+
+        }
+
+        else //for simple search 
+
+        {
+
+            for (string j : result) {
+
+                cout << j << endl;
+
+            }
+
+        }
+
+    }
+
+}
+
+
+
+
+
+void AddBooks() {
+
+    vector<string> new_book;
+
+    string id, title, Author, Publisher, Year_str;
+
+    int Year;
+
+    cout << "Enter the ID of the new book: ";
+
+    cin >> id;
+
+    cout << "Enter the title of the new book: ";
+
+    cin.ignore();  // ignore any remaining newline characters in the input buffer 
+
+    getline(cin, title);
+
+    cout << "Enter the Author of the new book: ";
+
+    getline(cin, Author);
+
+    cout << "Enter the Publisher of the new book: ";
+
+    getline(cin, Publisher);
+
+    cout << "Enter the Year of the new book: ";
+
+    cin >> Year;
+
+    Year_str = to_string(Year);
+
+    new_book.push_back(id);
+
+    new_book.push_back(title);
+
+    new_book.push_back(Author);
+
+    new_book.push_back(Publisher);
+
+    new_book.push_back(Year_str);
+
+    book_data.push_back(new_book);
+
+    book_size++;
+
+    savebook();
+
+}
+
+
+
+void DeleteBooks() {
+
+    string id;
+
+    cout << "Enter the ID of the book to be Delete: ";
+
+    cin >> id;
+
+    bool book_found = false;
+
+    for (int i = 0; i < book_data.size(); i++) {
+
+        if (book_data[i][0] == id) {
+
+            book_data.erase(book_data.begin() + i);
+
+            book_found = true;
+
+            break;
+
+        }
+
+    }
+
+    if (book_found) {
+
+        cout << "Book with ID " << id << " has been removed.\n";
+
+    }
+
+    else {
+
+        cout << "Book with ID " << id << " not found.\n";
+
+    }
+    book_size--;
+    savebook();
+}
+
+
+
+void ManageBooks() {
+
+    cout << "*** Manage Books ***\n"
+
+        << "[1] Display books\n"
+
+        << "[2] Search book\n"
+
+        << "[3] Add book\n"
+
+        << "[4] Remove book\n"
+
+        << "[5] Back\n"
+
+        << "********************\n"
+
+        << "Option (1 - 5):";
+
+    int choice = 0;
+
+    cin >> choice;
+
+    if (choice == 1) {
+
+        Showbooks();
+
+    }
+
+    else if (choice == 2) {
+
+        FindBooks();
+
+    }
+
+    else if (choice == 3) {
+
+        AddBooks();
+
+    }
+
+    else if (choice == 4) {
+
+        DeleteBooks();
+
+    }
+
+    else if (choice == 5) {
+
+        LMS();
+
+    }
+
+    else {
+
+        cout << "\nInvalid choice!\n";
+
+    }
+
+}
+
+
+
+void LMS() {
+
+    cout << "*** Library Management System ***\n"
+
+        << "[1] Manage books\n"
+
+        << "[2] Manage borrowers\n"
+
+        << "[3] Borrow book(s)\n"
+
+        << "[4] Return book(s)\n"
+
+        << "[5] Useful feature(s) added\n"
+
+        << "[6] Member List\n"
+
+        << "[7] Exit\n"
+
+        << "*********************************\n"
+
+        << "Option (1 - 7):";
+
+    int choice = 0;
+
+    cin >> choice;
+
+    if (choice == 1) {
+
+        ManageBooks();
+
+    }
+
+    else if (choice == 2) {
+
+
+
+    }
+
+    else if (choice == 3) {
+
+
+
+    }
+
+    else if (choice == 4) {
+
+
+
+    }
+
+    else if (choice == 5) {
+
+
+
+    }
+
+    else if (choice == 6) {
+
+
+
+    }
+
+    else if (choice == 7) {
+
+
+
+    }
+
+    else {
+
+        cout << "\nInvalid choice!\n";
+
+    }
+
+}
+
+
+void ManageBorrowers() {
+
+    cout << "*** Manage Borrowers ***\n"
+
+        << "[1] Display borrowers \n"
+
+        << "[2] Search borrowers \n"
+
+        << "[3] Add borrowers \n"
+
+        << "[4] Remove borrowers \n"
+
+        << "[5] Back\n"
+
+        << "********************\n"
+
+        << "Option (1 - 5):";
+
+    int choice = 0;
+
+    cin >> choice;
+
+    if (choice == 1) {
+
+        //Displayborrowers();
+
+    }
+
+    else if (choice == 2) {
+
+        //Searchborrowers();
+
+    }
+
+    else if (choice == 3) {
+
+        //Addborrowers();
+
+    }
+
+    else if (choice == 4) {
+
+        //Removeborrowers();
+
+    }
+
+    else if (choice == 5) {
+
+        LMS();
+
+    }
+
+    else {
+
+        cout << "\nInvalid choice!Try again\n";
+
+    }
+
+}
+
+
+
+void Displayborrowers() {
+
+    cout << left << setw(15) << "ID" << setw(15) << "Last name" << setw(15) << "First  name" << setw(15) << "Contact number" << setw(15) << "Number of books borrowed" << endl;
+
+
+
+    for (int r = 0; r < borrower_size; r++)
+
+    {
+
+        cout << left << setw(15) << BorrowerList[r].id << setw(15) << BorrowerList[r].lastname << setw(15) << BorrowerList[r].firstname << setw(15) << BorrowerList[r].contactNumber << setw(15) << BorrowerList[r].numBooksBorrowed << endl;
+
+    }
+
+}
+
+
+
+void Searchborrowers() {
+
+    string sid;
+
+    cout << "Please input the borrower ID for searching : ";
+
+    cin >> sid;
+
+    for (int r = 0; r < borrower_size; r++)
+
+    {
+
+        if (sid == BorrowerList[r].id)
+
+        {
+
+            cout << left << setw(15) << "ID" << setw(15) << "Last name" << setw(15) << "First name" << setw(15) << "Contact number" << setw(15) << "List of borrowed books" << endl;
+
+            cout << left << setw(15) << BorrowerList[r].id << setw(15) << BorrowerList[r].lastname << setw(15) << BorrowerList[r].firstname << setw(15) << BorrowerList[r].contactNumber << setw(15) << BorrowerList[r].numBooksBorrowed << endl;
+
+            ManageBorrowers();
+
+        }
+
+        else
+
+            cout << "Sorry, there is no matched record.";
+
+        ManageBorrowers();
+
+    }
+
+}
+
+
+
+void Addborrowers() {
+
+
+
+    const int Max_borrowers = 500;
+
+    BorrowerList.reserve(Max_borrowers);
+
+
+
+    srand(time(nullptr));
+
+    int random = rand() % 10000;
+
+    string id = to_string(random);
+
+    string randomid = "HKCC" + string(4 - id.length(), '0') + id;
+
+
+
+    string lastname, firstname, contactNumber;
+
+    int numBooksBorrowed = 0;
+
+    cout << "Please enter your contact number ( 8-digit number starting with 2, 3, 5, 6 or 9)" << endl;
+
+    cin.ignore();
+
+    cin >> contactNumber;
+
+    if (contactNumber[0] != '2' && contactNumber[0] != '3' && contactNumber[0] != '5' && contactNumber[0] != '6' && contactNumber[0] != '9' && contactNumber.size() > 8) {
+
+        cout << "Invaild contact number. Please try agagin." << endl;
+
+        return;
+
+    }
+
+    cout << "Please enter your last name (max 10 characters)" << endl;
+
+    cin.ignore();
+
+    getline(cin, lastname);
+
+    transform(lastname.begin(), lastname.end(), lastname.begin(), ::toupper);
+
+    if (lastname.size() > 10) {
+
+        cout << "Invaild lastname! Please try again." << endl;
+
+        return;
+
+    }
+
+    cout << "Please enter your first name (max 30 characters)" << endl;
+
+    cin.ignore();
+
+    getline(cin, firstname);
+
+    for (char& c : firstname) {
+
+        c = tolower(c);
+
+    }
+
+    firstname[0] = toupper(firstname[0]);
+
+    for (int i = 1; i < firstname.size(); i++) {
+
+        if (firstname[i - 1] == ' ') {
+
+            firstname[i] = toupper(firstname[i]);
+
+        }
+
+    }
+
+    if (firstname.size() > 30) {
+
+        cout << "Invaild firstname! Please try again." << endl;
+
+        return;
+
+    }
+
+
+
+    string borrowerID = randomid;
+
+    numBooksBorrowed++;
+
+
+
+
+
+    cout << "Borrower added successfully." << endl;
+
+    BorrowerList.push_back({ borrowerID,lastname, firstname, contactNumber,numBooksBorrowed });
+
+    cout << "The new ID of borrower is : " << borrowerID << endl;
+
+
+
+
+
+}
+
+
+
+void Removeborrowers() {
+
+
+
+    cout << "Enter the borrower's ID to remove: ";
+
+    string removeid;
+
+    cin >> removeid;
+
+    auto it = find_if(BorrowerList.begin(), BorrowerList.end(), [&](const Borrower& b) {
+
+        return b.id == removeid;
+
+        });
+
+    if (it == BorrowerList.end()) {
+
+        cout << "Borrower's ID " << removeid << " not found." << endl;
+
+    }
+
+    else if (it->numBooksBorrowed > 0) {
+
+        cout << "Borrower's ID " << removeid << " has borrowed " << it->numBooksBorrowed << " book(s). Please retern all borrowed books before removing." << endl;
+
+    }
+
+    else {
+
+        cout << "Borrower found:" << endl;
+
+        cout << "ID: " << it->id << endl;
+
+        cout << "Last Name: " << it->lastname << endl;
+
+        cout << "First Name: " << it->firstname << endl;
+
+        cout << "Contact Number: " << it->contactNumber << endl;
+
+        cout << "Had borrowed " << it->numBooksBorrowed << " book(s)" << endl;
+
+        cout << "Do you want to remove this borrower? (Yes or Not): ";
+
+        string confirm;
+
+        cin.ignore();
+
+        getline(cin, confirm);
+
+        if (confirm == "Y" || confirm == "y") {
+
+            BorrowerList.erase(it);
+
+            cout << "Borrower's ID " << removeid << " has been removed" << endl;
+
+        }
+
+        else {
+
+            cout << "Borrower's ID " << removeid << " is not removed." << endl;
+
+        }
+
+    }
+
+}
+
+void borrowbooks() //可能要改睇下個人想借幾多書去做優化
+{
+    string confirm, checkbookID;
+    int ID_code = 0;
+    cout << "what is your borrower ID ？";
+    cin >> confirm;
+    for (int i = 0; i < borrower_size; i++) {
+        if (confirm != BorrowerList[i].id) {
+            cout << "  borrowerID erro try again !  ";
+            LMS();
+        }
+        else {
+            ID_code = i;
+            cout << "borrowerID vaild ! ";
+            cout << "what book would you want to borrow ?\n";
+            cout << "please type the book ID\n";
+            cin >> checkbookID;
+        }
+    }
+    if (BorrowerList[ID_code].numBooksBorrowed >= 5) {//for quota is not enough 
+
+        cout << "your don’t have a space ,you can return first !";
+
+        //returnbooks();
+    }
+    else {
+        for (int i = 0; i < book_data.size(); i++) {//for quota is enough 
+            if (BookList[i].id == checkbookID && BookList[i].Availability == "Yes") {
+                BorrowerList[i].numBooksBorrowed++;
+                BookList[i].Availability == "No";
+            }
+        }
+    }
+}
+
+void returnbooks() {
+
+    string confirm;
+    string checkbookID[5] = {};
+
+    int return_books = 0;
+
+    int quota = 0;
+
+    cout << "what is your borrower ID ？";
+
+    cin >> confirm;
+
+
+
+    for (int i = 0; i <= borrower_size; i++) {
+
+        if (confirm != BorrowerList[i].id) {
+            cout << "wrong  borrowerID  !  ";
+            LMS();
+        }
+        else {
+            cout << "borrowerID correct ! ";
+
+            cout << "how many books would you want to return?\n";
+
+            cin >> return_books;
+        }
+    }
+    for (int i = 0; i < return_books; i++) {
+        cout << "please enter books ID\n";
+        cin >> checkbookID[i];
+    }
+    for (int i = 0; i < book_data.size(); i++) {
+
+        if (checkbookID[i] == BorrowerList[i].Borrowed_Books[i].id) {
+
+            //Deleted  BorrowerList[i].Borrowed_Books[i].id;
+
+            //Deleted BorrowerList[i].Borrowed_Books[i].name;
+
+            //Deleted BorrowerList[i].Borrowed_Books[i].author;
+
+            //Deleted BorrowerList[i].Borrowed_Books[i].publisher;
+            if (BookList[i].Availability == "No") {
+
+                BorrowerList[i].numBooksBorrowed--;
+
+                BookList[i].Availability == "Yes";
+
+                cout << "Returned ";
+            }
+        }
+        else {
+            cout << " book ID cannot detected, please try again. \n ";
+            returnbooks();
+        }
+    }
+}
+
+void displaymemberlist()
+{
+        cout << "204A Group 12\n"
+        << left
+        << setw(15) << "Name" << setw(15) << "Student number\n"
+        << setw(15) << "1. Chan Cheuk Lam" << setw(15) << "22064713A \n"
+        << setw(15) << "2. Chen Kwun Ki" << setw(15) << "22092957A \n"
+        << setw(15) << "3. Chau Pak Hong" << setw(15) << "22144829A \n"
+        << setw(15) << "4. Chan Chu Ming" << setw(15) << "22157211A \n"
+        << setw(15) << "5. Cheng Long Hin" << setw(15) << "() \n"
+        << setw(15) << "6. Chan Kwun Fai" << setw(15) << "() \n";
+ 
+}
+
+
+
+
+
+
+
+
+
+
+
+int main() {
+
+    string filenameBook = "E:\\C++ project\\BookList.csv";
+
+    string filenameBorrower = "E:\\C++ project\\BorrowerList.csv";
+
+    readCSV(filenameBook);
+
+    readCSV(filenameBorrower);
+
+    savebook();
+    saveborrower();
+
+
+    LMS();
+
+
+
+
+    return 0;
+}
